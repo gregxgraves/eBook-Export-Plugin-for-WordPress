@@ -219,6 +219,7 @@ class ePub extends eBook_Creator {
         $ncx = $this->create_ncx();
         $titlepage = $this->titlepage();
         $copyright = $this->add_copyright();
+        $zip->addFromString('mimetype', 'application/epub+zip');
         $zip->addFromString('OPS/epb.opf', $epbopf);
         $zip->addFile($current_path.'templates/ePub/style.css','OPS/css/style.css');
         $zip->addFile($current_path.'templates/ePub/titlepage.css', 'OPS/css/titlepage.css');
