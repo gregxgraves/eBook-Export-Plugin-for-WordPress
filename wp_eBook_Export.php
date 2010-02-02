@@ -35,11 +35,11 @@ function wp_eBook_Export_options_page()
     if ($_SERVER['REQUEST_METHOD'] == 'POST')
     {
         $errors = array();
-        if (isset($_POST['book_title']) == false)
+        if (isset($_POST['book_title']) == false || strlen($_POST['book_title']) < 1)
         {
             $errors[] = _('You must enter a book title.');
         }
-        if (isset($_POST['book_author']) == false)
+        if (isset($_POST['book_author']) == false || strlen($_POST['book_author']) < 1)
         {
             $errors[] = _('You must enter a book author.');
         }
@@ -67,6 +67,9 @@ function wp_eBook_Export_options_page()
     } else {
     
         $book_info = array();
+        
+        $book_info['book_title'] = $_POST['book_title'];
+        $book_info['book_author'] = $_POST['book_author'];
         
         if (isset($_POST['muses_success_listing']) && strlen($_POST['muses_success_listing']) > 3)
         {
@@ -130,7 +133,7 @@ function wp_ebook_export_admin_form()
         ,'</tr>',"\n"
         ,'<tr valign="top">',"\n\t"
         ,'<th scope="row"><label for="category">',_('Chapter Category'),' <span class="required">*</span></label></th>',"\n\t"
-        ,'<td><input name="category" type="text" id="category" value="" class="category" maxlength="4" />'
+        ,'<td><select name="category">',ebook_list_category_options(),'</select>'
         ,'<span class="description">',_('Post category containing the chapters of your book, published in chronological order.'),'</span></td>',"\n"
         ,'</tr>',"\n"
         ,'<tr valign="top">',"\n\t"
@@ -192,6 +195,17 @@ function ebook_format_options()
         }
     }
     closedir($handle);
+    return $options;
+}
+
+function ebook_list_category_options()
+{
+    $categories = get_categories('type=post');
+    $options = '';
+    foreach ($categories as $category)
+    {
+        $options .= '<option value="'.$category->term_id.'">'.$category->cat_name.'</option>';
+    }
     return $options;
 }
 
