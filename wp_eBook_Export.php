@@ -23,7 +23,7 @@ Author URI: http://sorrowfulunfounded.com
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-define('WP_EBOOK_CURRENT_PATH', str_ireplace('wp_ebook_export.php', '', __FILE__));
+define('WP_EBOOK_CURRENT_PATH', str_replace('wp_eBook_Export.php', '', __FILE__));
 
 function wp_eBook_Export_add_menu_item()
 {
