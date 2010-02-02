@@ -1,8 +1,11 @@
 <?php
 
 class PlainText extends eBook {
+
+    $this->chapter_buffer = array();
+    $this->chapter_num = 0;
     
-    function title()
+    function add_title()
     {
         $txt = $this->meta["title"]."\n";
         $txt .= "By ".$this->meta["author"]."\n\n";
@@ -15,20 +18,31 @@ class PlainText extends eBook {
         {
             $txt .= $this->meta["isbn13"]."\n";
         }
+        
         $txt .= "\n";
         $txt .= $this->meta["license_text"]."\n\n";
     }
 
-    function chapter($title, $content)
+    function add_chapter($num, $content)
     {
-        $txt = $title."\n\n";
+        ++$this->chapter_num;
+        $txt = "Chapter ".$num."\n\n";
         $txt .= strip_tags($content)."\n\n";
-        return $txt;
+        $this->chapter_buffer[$this->chapter_num] = $txt;
     }
     
     function save_ebook()
     {
-
+        $txt = $this->title();
+        foreach ($this->chapter_buffer as $num => $text)
+        {
+            $txt .= $text;
+        }
+        
+        $txt = wordwrap($txt, 80);
+        
+        file_put_contents(WP_EBOOK_CURRENT_PATH.'eBooks/'.$this->meta['title'].'.txt', $txt);
+        
     }
     
 }
