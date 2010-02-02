@@ -2,8 +2,8 @@
 
 class PlainText extends eBook {
 
-    $this->chapter_buffer = array();
-    $this->chapter_num = 0;
+    public $chapter_buffer = array();
+    public $chapter_num = 0;
     
     function add_title()
     {

@@ -96,9 +96,9 @@ function wp_eBook_Export_options_page()
         $split_format = explode('|', $_POST['format']);
 
         require_once 'ebook.class.php';
-        require_once $split_format[0].'.'.$split_format[1].'.format.php';
+        require_once $split_format[1].'.'.$split_format[0].'.format.php';
 
-        $ebook = new ePub;
+        $ebook = new $split_format[1];
         $ebook->chapter_category = intval($_POST['category']);
         $ebook->set_book_info($book_info);
         $ebook->add_chapters();
