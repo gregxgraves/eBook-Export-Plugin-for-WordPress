@@ -1,6 +1,6 @@
 <?php
 
-class ePub extends eBook_Creator {
+class epub extends eBook {
 
     public $chapter_num = 0;
     public $file_extension = '.epub';
@@ -11,8 +11,8 @@ class ePub extends eBook_Creator {
     function add_chapter($title, $text)
     {
         ++$this->chapter_num;
-        $current_path = str_replace('ePub.format.php', '', __FILE__);
-        $chapter = file_get_contents($current_path.'/templates/ePub/chapter.html');
+
+        $chapter = file_get_contents(WP_EBOOK_CURRENT_PATH.'/templates/ePub/chapter.html');
         
         $chapter = str_replace('(title)', $title, $chapter);
         $chapter = str_replace('(booktitle)', $this->meta['title'], $chapter);
@@ -24,8 +24,8 @@ class ePub extends eBook_Creator {
     
     function add_copyright()
     {
-        $current_path = str_replace('ePub.format.php', '', __FILE__);
-        $copyright = file_get_contents($current_path.'templates/ePub/copyright.html');
+
+        $copyright = file_get_contents(WP_EBOOK_CURRENT_PATH.'templates/ePub/copyright.html');
         $copyright = str_replace('(title)', $this->meta['title'], $copyright);
         $copyright = str_replace('(rights)', nl2br($this->rights()), $copyright);
         
@@ -105,9 +105,7 @@ class ePub extends eBook_Creator {
     function titlepage()
     {
 
-        $current_path = str_replace('ePub.format.php', '', __FILE__);
-        
-        $title = file_get_contents($current_path.'templates/ePub/title.html');
+        $title = file_get_contents(WP_EBOOK_CURRENT_PATH.'templates/ePub/title.html');
 
         $title = str_replace('(title)', $this->meta['title'], $title);
         $title = str_replace('(author)', $this->meta['author'], $title);
@@ -193,13 +191,11 @@ class ePub extends eBook_Creator {
 
         $zip = new ZipArchive;
         
-        $current_path = str_replace('ePub.format.php', '', __FILE__);
-        
-        if (file_exists($current_path.'eBooks/'.sanitize_title($this->meta['title']).'.epub'))
+        if (file_exists(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['title']).'.epub'))
         {
-            $zip->open($current_path.'eBooks/'.sanitize_title($this->meta['title']).'.epub', ZIPARCHIVE::OVERWRITE);
+            $zip->open(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['title']).'.epub', ZIPARCHIVE::OVERWRITE);
         } else {
-            $zip->open($current_path.'eBooks/'.sanitize_title($this->meta['title']).'.epub', ZIPARCHIVE::CREATE);
+            $zip->open(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['title']).'.epub', ZIPARCHIVE::CREATE);
         }
 
         $zip->addEmptyDir('META-INF');
@@ -221,8 +217,8 @@ class ePub extends eBook_Creator {
         $copyright = $this->add_copyright();
         $zip->addFromString('mimetype', 'application/epub+zip');
         $zip->addFromString('OPS/epb.opf', $epbopf);
-        $zip->addFile($current_path.'templates/ePub/style.css','OPS/css/style.css');
-        $zip->addFile($current_path.'templates/ePub/titlepage.css', 'OPS/css/titlepage.css');
+        $zip->addFile(WP_EBOOK_CURRENT_PATH.'templates/ePub/style.css','OPS/css/style.css');
+        $zip->addFile(WP_EBOOK_CURRENT_PATH.'templates/ePub/titlepage.css', 'OPS/css/titlepage.css');
         $zip->addFromString('OPS/epb.ncx', $ncx);
         $zip->addFromString('OPS/title.html', $titlepage);
         $zip->addFromString('OPS/copyright.html', $copyright);
