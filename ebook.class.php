@@ -1,6 +1,6 @@
 <?php
 
-class eBook_Creator {
+class eBook {
 
     public $meta = array();
     public $chapter_category = 0;
