@@ -4,11 +4,12 @@ class PlainText extends eBook {
 
     public $chapter_buffer = array();
     public $chapter_num = 0;
+    public $file_extension = '.txt';
     
     function add_title()
     {
-        $txt = $this->meta["title"]."\n";
-        $txt .= "By ".$this->meta["author"]."\n\n";
+        $txt = $this->meta["book_title"]."\n";
+        $txt .= "By ".$this->meta["book_author"]."\n\n";
 
         if (isset($this->meta["isbn10"]))
         {
@@ -21,19 +22,20 @@ class PlainText extends eBook {
         
         $txt .= "\n";
         $txt .= $this->meta["license_text"]."\n\n";
+        return $txt;
     }
 
     function add_chapter($num, $content)
     {
         ++$this->chapter_num;
-        $txt = "Chapter ".$num."\n\n";
+        $txt = "Chapter ".$this->chapter_num."\n\n";
         $txt .= strip_tags($content)."\n\n";
         $this->chapter_buffer[$this->chapter_num] = $txt;
     }
     
     function save_ebook()
     {
-        $txt = $this->title();
+        $txt = $this->add_title();
         foreach ($this->chapter_buffer as $num => $text)
         {
             $txt .= $text;
@@ -41,7 +43,7 @@ class PlainText extends eBook {
         
         $txt = wordwrap($txt, 80);
         
-        file_put_contents(WP_EBOOK_CURRENT_PATH.'eBooks/'.$this->meta['title'].'.txt', $txt);
+        file_put_contents(WP_EBOOK_CURRENT_PATH.'eBooks/'.$this->meta['book_title'].'.txt', $txt);
         
     }
     
