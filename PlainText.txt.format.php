@@ -43,7 +43,7 @@ class PlainText extends eBook {
         
         $txt = wordwrap($txt, 80);
         
-        file_put_contents(WP_EBOOK_CURRENT_PATH.'eBooks/'.$this->meta['book_title'].'.txt', $txt);
+        file_put_contents(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['book_title']).'.txt', $txt);
         
     }
     
