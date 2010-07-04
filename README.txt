@@ -3,7 +3,7 @@ Contributors: Christopher Clarke
 Donate link: http://sorrowfulunfounded.com/wp-ebook-export/
 Tags: ebook, web fiction, ePub, export, fiction, lit
 Requires at least: 2.9.0
-Tested up to: 2.9.1
+Tested up to: 3.0
 Stable tag: 0.1
 
 WordPress eBook Export takes a specified category of posts and creates an eBook suitable for use on an eReader device that supports ePub.
@@ -56,6 +56,9 @@ Currently the only way to do this is to go through each post and manually change
 = What about recreating the eBook after a new chapter is published or edited? =
 
 Planned.
+
+== Credits ==
+* Johan Dahlstrom, @mastermute (Twitter) - for replacing ZipArchive with PclZip, adding support for images, bug reports
 
 == Changelog ==
 
