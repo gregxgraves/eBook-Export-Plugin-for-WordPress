@@ -84,6 +84,8 @@ function wp_eBook_Export_options_page()
             $book_info['tmwfd_listing'] = $_POST['tmwfd_listing'];
         }
         
+        $book_info['publication_year'] = intval($_POST['pubyear']);
+        
         require_once 'ISBN/ISBN.php';
         $isbn = new ISBN;
         
@@ -109,7 +111,7 @@ function wp_eBook_Export_options_page()
         
         echo '<div id="message" class="updated fade"><p>',_('The eBook has been created successfully.'),'</p></div>';
         echo '<p>',_('Download Your eBook:'),'</p>';
-        echo '<p><a href="'.plugins_url('eBooks/'.sanitize_title($_POST['book_title']).$eBook->file_extension,__FILE__).'">'.plugins_url('eBooks/'.sanitize_title($_POST['book_title']).$eBook->file_extension,__FILE__).'</a></p>';
+        echo '<p><a href="'.plugins_url('eBooks/'.sanitize_title($_POST['book_title']).$ebook->file_extension,__FILE__).'">'.plugins_url('eBooks/'.sanitize_title($_POST['book_title']).$eBook->file_extension,__FILE__).'</a></p>';
         
     }
 

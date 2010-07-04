@@ -1,16 +1,5 @@
 <?php
 
-if(! class_exists('PclZip')) {
-	if (!defined('WP_ADMIN_DIR')) {
-		define( 'WP_ADMIN_DIR', ABSPATH.'wp-admin/');
-	}
-	if (file_exists(WP_ADMIN_DIR.'includes/class-pclzip.php')) {
-		require_once(WP_ADMIN_DIR.'includes/class-pclzip.php');		
-	} else {
-		require_once('include/pclzip/pclzip.lib.php');		
-	}
-}
-
 class epub extends eBook {
 
     public $chapter_num = 0;
@@ -28,7 +17,7 @@ class epub extends eBook {
         $chapter = file_get_contents(WP_EBOOK_CURRENT_PATH.'/templates/ePub/chapter.html');
         
         $chapter = str_replace('(title)', $title, $chapter);
-        $chapter = str_replace('(booktitle)', $this->meta['title'], $chapter);
+        $chapter = str_replace('(booktitle)', $this->meta['book_title'], $chapter);
         $chapter = str_replace('(chapter_text)', wpautop($text), $chapter);
 
         $this->chapter_buffer[$this->chapter_num] = $chapter;
@@ -39,8 +28,8 @@ class epub extends eBook {
     {
 
         $copyright = file_get_contents(WP_EBOOK_CURRENT_PATH.'templates/ePub/copyright.html');
-        $copyright = str_replace('(title)', $this->meta['title'], $copyright);
-        $copyright = str_replace('(rights)', nl2br($this->rights()), $copyright);
+        $copyright = str_replace('(title)', $this->meta['book_title'], $copyright);
+        $copyright = str_replace('(rights)', sprintf(nl2br($this->rights()), $this->meta['book_title'], $this->meta['publication_year'], $this->meta['book_author']), $copyright);
         
         if (isset($this->meta['isbn']))
         {
@@ -68,17 +57,17 @@ class epub extends eBook {
       <!--The following four metadata items are required for all
             NCX documents, including those conforming to the relaxed
             constraints of OPS 2.0-->
-      <meta name="dtb:uid" content="'.sha1($blog_title.$this->meta['title']).'"/>
+      <meta name="dtb:uid" content="'.sha1($blog_title.$this->meta['book_title']).'"/>
       <meta name="epub-creator" content="'.$blog_title.' ('.$site_url.')"/>
       <meta name="dtb:depth" content="1"/>
       <meta name="dtb:totalPageCount" content="0"/>
       <meta name="dtb:maxPageNumber" content="0"/>
    </head>
     <docTitle>
-      <text>'.$this->meta['title'].'</text>
+      <text>'.$this->meta['book_title'].'</text>
    </docTitle>
    <docAuthor>
-      <text>'.$this->meta['author'].'</text>
+      <text>'.$this->meta['book_author'].'</text>
    </docAuthor>
    <navMap>
    ';
@@ -120,8 +109,8 @@ class epub extends eBook {
 
         $title = file_get_contents(WP_EBOOK_CURRENT_PATH.'templates/ePub/title.html');
 
-        $title = str_replace('(title)', $this->meta['title'], $title);
-        $title = str_replace('(author)', $this->meta['author'], $title);
+        $title = str_replace('(title)', $this->meta['book_title'], $title);
+        $title = str_replace('(author)', $this->meta['book_author'], $title);
         $title = str_replace('(blogname)', get_bloginfo('name'), $title);
         $title = str_replace('(blogurl)', get_bloginfo('siteurl'), $title);
         
@@ -154,11 +143,11 @@ class epub extends eBook {
         
         if(strlen($this->meta['coverimage'])>1)
         {
-        	$image = file_get_contents($this->meta['coverimage']);
-        	$pathInfo = pathinfo($this->meta['coverimage']);
-        	$this->addString('OPS/images/'.$pathInfo['filename'].'.'.$pathInfo['extension'],$image);
-        	$metacover = '<meta name="cover" content="cover-image"/>';
-        	$itemcover = '<item id="cover-image" href="images/'. $pathInfo['filename'] . '.'. $pathInfo['extension'] .'" media-type="image/'.$pathInfo['extension'].'"/>';
+            $image = file_get_contents($this->meta['coverimage']);
+            $pathInfo = pathinfo($this->meta['coverimage']);
+            $this->addString('OPS/images/'.$pathInfo['filename'].'.'.$pathInfo['extension'],$image);
+            $metacover = '<meta name="cover" content="cover-image"/>';
+            $itemcover = '<item id="cover-image" href="images/'. $pathInfo['filename'] . '.'. $pathInfo['extension'] .'" media-type="image/'.$pathInfo['extension'].'"/>';
         }
                 
         $file = '<?xml version="1.0" encoding="UTF-8"?>
@@ -166,8 +155,8 @@ class epub extends eBook {
 <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="EPB-UUID" version="2.0">
    <metadata xmlns:opf="http://www.idpf.org/2007/opf"
              xmlns:dc="http://purl.org/dc/elements/1.1/">
-      <dc:title>'.$this->meta['title'].'</dc:title>
-      <dc:creator opf:role="aut">'.$this->meta['author'].'</dc:creator>
+      <dc:title>'.$this->meta['book_title'].'</dc:title>
+      <dc:creator opf:role="aut">'.$this->meta['book_author'].'</dc:creator>
       <dc:date opf:event="original-publication"/>
       <dc:publisher>'.$blog_title.' ('.$site_url.')</dc:publisher>
       <dc:date opf:event="epub-publication">'.date('Y-m-d').'</dc:date>
@@ -215,8 +204,20 @@ class epub extends eBook {
     
     function save_ebook()
     {
-		$this->zip = new PclZip(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['title']). $this->file_extension);
-		           
+    
+    if(! class_exists('PclZip')) {
+    if (!defined('WP_ADMIN_DIR')) {
+        define( 'WP_ADMIN_DIR', ABSPATH.'wp-admin/');
+    }
+    if (file_exists(WP_ADMIN_DIR.'includes/class-pclzip.php')) {
+        require_once(WP_ADMIN_DIR.'includes/class-pclzip.php');
+    } else {
+        require_once('include/pclzip/pclzip.lib.php');
+    }
+}
+
+        $this->zip = new PclZip(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['book_title']). $this->file_extension);
+                   
         $container = '<?xml version="1.0" encoding="UTF-8"?>
 <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
    <rootfiles>
@@ -227,14 +228,14 @@ class epub extends eBook {
         $list = $this->zip->create(array(
                              array( PCLZIP_ATT_FILE_NAME => 'META-INF/container.xml',
                                   PCLZIP_ATT_FILE_CONTENT => $container
-                                  )	
+                                  )    
                              )
                              );    
                     
         if ($list == 0) 
         {
-  			die("ERROR : '".$zip->errorInfo(true)."'");
-		} 
+              die("ERROR : '".$zip->errorInfo(true)."'");
+        } 
         
         $epbopf = $this->create_epb_opf();
         $ncx = $this->create_ncx();
@@ -246,7 +247,7 @@ class epub extends eBook {
         $this->addString('OPS/epb.opf',$epbopf);
         
         $this->zip->add(WP_EBOOK_CURRENT_PATH.'templates/ePub/style.css',
-        								PCLZIP_OPT_ADD_PATH, 'OPS/css',
+                                        PCLZIP_OPT_ADD_PATH, 'OPS/css',
                           PCLZIP_OPT_REMOVE_PATH, WP_EBOOK_CURRENT_PATH.'templates/ePub');
                           
         
@@ -262,18 +263,18 @@ class epub extends eBook {
         
         foreach ($this->chapter_buffer as $chapter_num => $chapter_content)
         {   
-        	$chapter_content = $this->processImages($chapter_content);
+            $chapter_content = $this->processImages($chapter_content);
             $this->addString('OPS/chapter'.$chapter_num.'.html',$chapter_content);
         }
         
-    	
+        
         return true;
 
     }
     
     function addString($path,$string)
     {
-    	$error = $this->zip->add(array(
+        $error = $this->zip->add(array(
                            array( PCLZIP_ATT_FILE_NAME => $path,
                                   PCLZIP_ATT_FILE_CONTENT => $string
                                 )
@@ -282,44 +283,44 @@ class epub extends eBook {
                  
         if ($error == 0) 
         {
-  			die("ERROR : '".$this->zip->errorInfo(true)."'");
-		}
+              die("ERROR : '".$this->zip->errorInfo(true)."'");
+        }
     }
     
     function processImages($html)
-    {	
-		$doc = new DOMDocument(); 
-		@$doc->loadHTML($html);
+    {    
+        $doc = new DOMDocument(); 
+        @$doc->loadHTML($html);
 
-		$tags = $doc->getElementsByTagName('img');
+        $tags = $doc->getElementsByTagName('img');
 
-		foreach ($tags as $tag) 
-		{ 
-			echo $tag->getAttribute('src'); 
-			$image = file_get_contents($tag->getAttribute('src'));
-			$pathInfo = pathinfo($tag->getAttribute('src'));
-			$this->addString('OPS/images/'.$pathInfo['filename'].'.'.$pathInfo['extension'],$image);
-			$html = str_replace($tag->getAttribute('src'), 'images/'.$pathInfo['filename'].'.'.$pathInfo['extension'], $html);
-		}
-    	return $this->stripTags($html,'a');
+        foreach ($tags as $tag) 
+        { 
+            echo $tag->getAttribute('src'); 
+            $image = file_get_contents($tag->getAttribute('src'));
+            $pathInfo = pathinfo($tag->getAttribute('src'));
+            $this->addString('OPS/images/'.$pathInfo['filename'].'.'.$pathInfo['extension'],$image);
+            $html = str_replace($tag->getAttribute('src'), 'images/'.$pathInfo['filename'].'.'.$pathInfo['extension'], $html);
+        }
+        return $this->stripTags($html,'a');
     }
     
     function stripTags($str, $tags, $stripContent = false) 
     {
-    	$content = '';
-    	if(!is_array($tags)) 
-    	{
-        	$tags = (strpos($str, '>') !== false ? explode('>', str_replace('<', '', $tags)) : array($tags));
-        	if(end($tags) == '') array_pop($tags);
-    	}
-    	foreach($tags as $tag) 
-    	{
-        	if ($stripContent)
-            	$content = '(.+</'.$tag.'[^>]*>|)';
-         	$str = preg_replace('#</?'.$tag.'[^>]*>'.$content.'#is', '', $str);
-    	}
+        $content = '';
+        if(!is_array($tags)) 
+        {
+            $tags = (strpos($str, '>') !== false ? explode('>', str_replace('<', '', $tags)) : array($tags));
+            if(end($tags) == '') array_pop($tags);
+        }
+        foreach($tags as $tag) 
+        {
+            if ($stripContent)
+                $content = '(.+</'.$tag.'[^>]*>|)';
+             $str = preg_replace('#</?'.$tag.'[^>]*>'.$content.'#is', '', $str);
+        }
     return $str;
-	} 
+    } 
 
 }
 
