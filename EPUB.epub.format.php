@@ -1,5 +1,16 @@
 <?php
 
+if(! class_exists('PclZip')) {
+	if (!defined('WP_ADMIN_DIR')) {
+		define( 'WP_ADMIN_DIR', ABSPATH.'wp-admin/');
+	}
+	if (file_exists(WP_ADMIN_DIR.'includes/class-pclzip.php')) {
+		require_once(WP_ADMIN_DIR.'includes/class-pclzip.php');		
+	} else {
+		require_once('include/pclzip/pclzip.lib.php');		
+	}
+}
+
 class epub extends eBook {
 
     public $chapter_num = 0;
@@ -7,6 +18,8 @@ class epub extends eBook {
     public $pretext_buffer = array();
     public $chapter_buffer = array();
     public $posttext_buffer = array();
+    
+    private $zip = '';
 
     function add_chapter($title, $text)
     {
@@ -136,6 +149,18 @@ class epub extends eBook {
         $blog_title = get_bloginfo('name');
         $site_url = get_bloginfo('siteurl');
         
+        $metacover = '';
+        $itemcover = '';
+        
+        if(strlen($this->meta['coverimage'])>1)
+        {
+        	$image = file_get_contents($this->meta['coverimage']);
+        	$pathInfo = pathinfo($this->meta['coverimage']);
+        	$this->addString('OPS/images/'.$pathInfo['filename'].'.'.$pathInfo['extension'],$image);
+        	$metacover = '<meta name="cover" content="cover-image"/>';
+        	$itemcover = '<item id="cover-image" href="images/'. $pathInfo['filename'] . '.'. $pathInfo['extension'] .'" media-type="image/'.$pathInfo['extension'].'"/>';
+        }
+                
         $file = '<?xml version="1.0" encoding="UTF-8"?>
 
 <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="EPB-UUID" version="2.0">
@@ -153,10 +178,12 @@ class epub extends eBook {
       </dc:rights>
       <dc:identifier id="EPB-UUID">urn:uuid:D56BD73C-6BFE-1014-8E4E-B5B05E9FBBCD</dc:identifier>
       <dc:language>en-gb</dc:language>
+      '.$metacover.'
    </metadata>';
 
    $file .= '<manifest>
       <!-- Content Documents -->
+      '.$itemcover.'
       <item id="titlepage" href="title.html" media-type="text/html"/>
       <item id="copyright" href="copyright.html" media-type="text/html"/>
       ';
@@ -188,50 +215,111 @@ class epub extends eBook {
     
     function save_ebook()
     {
-
-        $zip = new ZipArchive;
-        
-        if (file_exists(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['title']).'.epub'))
-        {
-            $zip->open(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['title']).'.epub', ZIPARCHIVE::OVERWRITE);
-        } else {
-            $zip->open(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['title']).'.epub', ZIPARCHIVE::CREATE);
-        }
-
-        $zip->addEmptyDir('META-INF');
-            
+		$this->zip = new PclZip(WP_EBOOK_CURRENT_PATH.'eBooks/'.sanitize_title($this->meta['title']). $this->file_extension);
+		           
         $container = '<?xml version="1.0" encoding="UTF-8"?>
 <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
    <rootfiles>
       <rootfile full-path="OPS/epb.opf" media-type="application/oebps-package+xml"/>
    </rootfiles>
 </container>';
-            
-        $zip->addFromString('META-INF/container.xml', $container);
-            
-        $zip->addEmptyDir('OPS');
-        $zip->addEmptyDir('OPS/css');
+        
+        $list = $this->zip->create(array(
+                             array( PCLZIP_ATT_FILE_NAME => 'META-INF/container.xml',
+                                  PCLZIP_ATT_FILE_CONTENT => $container
+                                  )	
+                             )
+                             );    
+                    
+        if ($list == 0) 
+        {
+  			die("ERROR : '".$zip->errorInfo(true)."'");
+		} 
+        
         $epbopf = $this->create_epb_opf();
         $ncx = $this->create_ncx();
         $titlepage = $this->titlepage();
         $copyright = $this->add_copyright();
-        $zip->addFromString('mimetype', 'application/epub+zip');
-        $zip->addFromString('OPS/epb.opf', $epbopf);
-        $zip->addFile(WP_EBOOK_CURRENT_PATH.'templates/ePub/style.css','OPS/css/style.css');
-        $zip->addFile(WP_EBOOK_CURRENT_PATH.'templates/ePub/titlepage.css', 'OPS/css/titlepage.css');
-        $zip->addFromString('OPS/epb.ncx', $ncx);
-        $zip->addFromString('OPS/title.html', $titlepage);
-        $zip->addFromString('OPS/copyright.html', $copyright);
+        
+        $this->addString('mimetype','application/epub+zip');
+               
+        $this->addString('OPS/epb.opf',$epbopf);
+        
+        $this->zip->add(WP_EBOOK_CURRENT_PATH.'templates/ePub/style.css',
+        								PCLZIP_OPT_ADD_PATH, 'OPS/css',
+                          PCLZIP_OPT_REMOVE_PATH, WP_EBOOK_CURRENT_PATH.'templates/ePub');
+                          
+        
+        $this->zip->add(WP_EBOOK_CURRENT_PATH.'templates/ePub/titlepage.css',
+        PCLZIP_OPT_ADD_PATH, 'OPS/css/',
+                          PCLZIP_OPT_REMOVE_PATH, WP_EBOOK_CURRENT_PATH.'templates/ePub');
+        
+        $this->addString('OPS/epb.ncx',$ncx);
+              
+        $this->addString('OPS/title.html',$titlepage);
+        
+        $this->addString('OPS/copyright.html', $copyright);
+        
         foreach ($this->chapter_buffer as $chapter_num => $chapter_content)
-        {
-            $zip->addFromString('OPS/chapter'.$chapter_num.'.html', $chapter_content);
+        {   
+        	$chapter_content = $this->processImages($chapter_content);
+            $this->addString('OPS/chapter'.$chapter_num.'.html',$chapter_content);
         }
         
-        $zip->close();
-    
+    	
         return true;
 
     }
+    
+    function addString($path,$string)
+    {
+    	$error = $this->zip->add(array(
+                           array( PCLZIP_ATT_FILE_NAME => $path,
+                                  PCLZIP_ATT_FILE_CONTENT => $string
+                                )
+                           )
+                 );  
+                 
+        if ($error == 0) 
+        {
+  			die("ERROR : '".$this->zip->errorInfo(true)."'");
+		}
+    }
+    
+    function processImages($html)
+    {	
+		$doc = new DOMDocument(); 
+		@$doc->loadHTML($html);
+
+		$tags = $doc->getElementsByTagName('img');
+
+		foreach ($tags as $tag) 
+		{ 
+			echo $tag->getAttribute('src'); 
+			$image = file_get_contents($tag->getAttribute('src'));
+			$pathInfo = pathinfo($tag->getAttribute('src'));
+			$this->addString('OPS/images/'.$pathInfo['filename'].'.'.$pathInfo['extension'],$image);
+			$html = str_replace($tag->getAttribute('src'), 'images/'.$pathInfo['filename'].'.'.$pathInfo['extension'], $html);
+		}
+    	return $this->stripTags($html,'a');
+    }
+    
+    function stripTags($str, $tags, $stripContent = false) 
+    {
+    	$content = '';
+    	if(!is_array($tags)) 
+    	{
+        	$tags = (strpos($str, '>') !== false ? explode('>', str_replace('<', '', $tags)) : array($tags));
+        	if(end($tags) == '') array_pop($tags);
+    	}
+    	foreach($tags as $tag) 
+    	{
+        	if ($stripContent)
+            	$content = '(.+</'.$tag.'[^>]*>|)';
+         	$str = preg_replace('#</?'.$tag.'[^>]*>'.$content.'#is', '', $str);
+    	}
+    return $str;
+	} 
 
 }
 
