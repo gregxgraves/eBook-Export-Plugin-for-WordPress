@@ -25,6 +25,33 @@ Author URI: http://sorrowfulunfounded.com
 
 define('WP_EBOOK_CURRENT_PATH', str_replace('wp_eBook_Export.php', '', __FILE__));
 
+function wp_eBook_Export_install()
+{
+   global $wpdb;
+
+   $table_name = $wpdb->prefix . "ebooks";
+
+   if($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        $sql = 'CREATE TABLE `'.$table_name.'` (
+  `ebook_id` int(11) NOT NULL AUTO_INCREMENT,
+  `ebook_title` text NOT NULL,
+  `ebook_synopsis` longtext NOT NULL,
+  `ebook_author` text NOT NULL,
+  `ebook_homepage` text NOT NULL,
+  `ebook_isbn` varchar(11) NOT NULL,
+  `ebook_isbn13` varchar(13) NOT NULL,
+  `ebook_category` int(11) NOT NULL,
+  `ebook_first_published` int(4) NOT NULL,
+  `ebook_copyright` VARCHAR(20)
+  PRIMARY KEY (`ebook_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;'; 
+        
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+
+   }
+}
+
 function wp_eBook_Export_add_menu_item()
 {
     add_management_page(_('Create e-book'), _('E-book Manager'), 5, __FILE__, 'wp_eBook_Export_options_page' );
@@ -32,6 +59,7 @@ function wp_eBook_Export_add_menu_item()
 
 function wp_eBook_Export_options_page()
 {
+    global $wpdb;
     if ($_SERVER['REQUEST_METHOD'] == 'POST')
     {
         $errors = array();
@@ -108,6 +136,19 @@ function wp_eBook_Export_options_page()
         $ebook->set_book_info($book_info);
         $ebook->add_chapters();
         $ebook->save_ebook();
+        
+        $book_data = array();
+        $book_data['ebook_title'] = trim($_POST['book_title']);
+        $book_data['ebook_author'] = trim($_POST['book_author']);
+        $book_data['ebook_isbn'] = $_POST['isbn10'];
+        $book_data['ebook_isbn13'] = $_POST['isbn13'];
+        $book_data['ebook_category'] = intval($_POST['category']);
+        $book_data['ebook_copyright'] = 
+        $book_data['ebook_first_published'] = intval($_POST['pubyear']);
+                
+        $table_name = $wpdb->prefix . "ebooks";
+        
+        $wpdb->insert($table_name, $book_data);
         
         echo '<div id="message" class="updated fade"><p>',_('The eBook has been created successfully.'),'</p></div>';
         echo '<p>',_('Download Your eBook:'),'</p>';
@@ -221,7 +262,8 @@ function ebook_license_options()
     }
     return $options;
 }
-    
+
+register_activation_hook(__FILE__,'wp_eBook_Export_install');  
 add_action('admin_menu', 'wp_eBook_Export_add_menu_item');
 
 ?>
